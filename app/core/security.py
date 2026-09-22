@@ -20,7 +20,20 @@ def create_access_token(subject: str, is_superadmin: bool) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
-    payload = {"sub": subject, "is_superadmin": is_superadmin, "exp": expire}
+    payload = {
+        "sub": subject,
+        "is_superadmin": is_superadmin,
+        "type": "admin",
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+
+
+def create_member_token(subject: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.access_token_expire_minutes
+    )
+    payload = {"sub": subject, "type": "member", "exp": expire}
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 

@@ -7,6 +7,13 @@ from app.models.admin import AdminUser  # noqa: F401
 from app.models.event import Event  # noqa: F401
 from app.models.testimony import Testimony  # noqa: F401
 from app.models.partner import Partner  # noqa: F401
+from app.models.member import Member  # noqa: F401
+from app.models.reading import (  # noqa: F401
+    ReadingPlan,
+    ReadingDay,
+    ReadingProgress,
+    Certificate,
+)
 from app.models.submissions import (  # noqa: F401
     ContactSubmission,
     PrayerRequest,

@@ -9,6 +9,7 @@ from app.core.security import hash_password
 from app.db.session import get_db
 from app.services.storage import upload_image
 from app.models.admin import AdminUser
+from app.models.reading import ReadingDay, ReadingPlan
 from app.models.event import Event
 from app.models.partner import Partner
 from app.models.testimony import Testimony
@@ -21,6 +22,7 @@ from app.models.submissions import (
     VolunteerApplication,
 )
 from app.schemas.admin import AdminUserCreate, AdminUserOut
+from app.schemas.reading import ReadingDayCreate, ReadingDayOut, ReadingPlanCreate, ReadingPlanOut
 from app.schemas.event import EventCreate, EventOut, EventUpdate
 from app.schemas.partner import PartnerCreate, PartnerOut, PartnerUpdate
 from app.schemas.testimony import TestimonyCreate, TestimonyOut, TestimonyUpdate
@@ -188,6 +190,55 @@ def update_submission_status(
     db.commit()
     db.refresh(item)
     return schema.model_validate(item)
+
+
+# ---------------- Reading plans (Bible reading progress feature) ----------------
+
+@router.get("/reading-plans", response_model=list[ReadingPlanOut])
+def list_reading_plans_admin(db: Session = Depends(get_db)):
+    return db.query(ReadingPlan).order_by(ReadingPlan.created_at.desc()).all()
+
+
+@router.post("/reading-plans", response_model=ReadingPlanOut, status_code=201)
+def create_reading_plan(payload: ReadingPlanCreate, db: Session = Depends(get_db)):
+    plan = ReadingPlan(**payload.model_dump())
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+@router.delete("/reading-plans/{plan_id}", status_code=204)
+def delete_reading_plan(plan_id: int, db: Session = Depends(get_db)):
+    plan = _get_or_404(db, ReadingPlan, plan_id)
+    db.delete(plan)
+    db.commit()
+
+
+@router.post(
+    "/reading-plans/{plan_id}/days", response_model=ReadingDayOut, status_code=201
+)
+def add_reading_day(plan_id: int, payload: ReadingDayCreate, db: Session = Depends(get_db)):
+    _get_or_404(db, ReadingPlan, plan_id)  # 404s cleanly if the plan doesn't exist
+    if (
+        db.query(ReadingDay)
+        .filter(ReadingDay.plan_id == plan_id, ReadingDay.day_number == payload.day_number)
+        .first()
+    ):
+        raise HTTPException(status_code=409, detail="That day number already exists on this plan")
+
+    day = ReadingDay(plan_id=plan_id, **payload.model_dump())
+    db.add(day)
+    db.commit()
+    db.refresh(day)
+    return day
+
+
+@router.delete("/reading-days/{day_id}", status_code=204)
+def delete_reading_day(day_id: int, db: Session = Depends(get_db)):
+    day = _get_or_404(db, ReadingDay, day_id)
+    db.delete(day)
+    db.commit()
 
 
 # ---------------- Image uploads ----------------
