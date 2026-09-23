@@ -14,6 +14,7 @@ from app.models.reading import (  # noqa: F401
     ReadingProgress,
     Certificate,
 )
+from app.models.registration import EventRegistration  # noqa: F401
 from app.models.submissions import (  # noqa: F401
     ContactSubmission,
     PrayerRequest,

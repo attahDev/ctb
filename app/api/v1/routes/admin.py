@@ -10,6 +10,8 @@ from app.db.session import get_db
 from app.services.storage import upload_image
 from app.models.admin import AdminUser
 from app.models.reading import ReadingDay, ReadingPlan
+from app.models.registration import EventRegistration
+from app.models.member import Member
 from app.models.event import Event
 from app.models.partner import Partner
 from app.models.testimony import Testimony
@@ -23,6 +25,7 @@ from app.models.submissions import (
 )
 from app.schemas.admin import AdminUserCreate, AdminUserOut
 from app.schemas.reading import ReadingDayCreate, ReadingDayOut, ReadingPlanCreate, ReadingPlanOut
+from app.schemas.registration import RegistrantOut
 from app.schemas.event import EventCreate, EventOut, EventUpdate
 from app.schemas.partner import PartnerCreate, PartnerOut, PartnerUpdate
 from app.schemas.testimony import TestimonyCreate, TestimonyOut, TestimonyUpdate
@@ -85,6 +88,27 @@ def delete_event(event_id: int, db: Session = Depends(get_db)):
     event = _get_or_404(db, Event, event_id)
     db.delete(event)
     db.commit()
+
+
+@router.get("/events/{event_id}/registrations", response_model=list[RegistrantOut])
+def list_event_registrants(event_id: int, db: Session = Depends(get_db)):
+    _get_or_404(db, Event, event_id)  # 404s cleanly if the event doesn't exist
+    rows = (
+        db.query(EventRegistration, Member)
+        .join(Member, Member.id == EventRegistration.member_id)
+        .filter(EventRegistration.event_id == event_id)
+        .order_by(EventRegistration.registered_at.asc())
+        .all()
+    )
+    return [
+        RegistrantOut(
+            member_id=member.id,
+            full_name=member.full_name,
+            email=member.email,
+            registered_at=registration.registered_at,
+        )
+        for registration, member in rows
+    ]
 
 
 # ---------------- Testimonies ----------------

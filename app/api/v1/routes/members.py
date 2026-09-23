@@ -11,6 +11,8 @@ from app.core.security import create_member_token, hash_password, verify_passwor
 from app.db.session import get_db
 from app.models.member import Member
 from app.models.reading import Certificate, ReadingDay, ReadingPlan, ReadingProgress
+from app.models.registration import EventRegistration
+from app.models.event import Event
 from app.schemas.admin import Token
 from app.schemas.member import MemberLogin, MemberOut, MemberRegister, MemberUpdate
 from app.schemas.reading import (
@@ -19,6 +21,7 @@ from app.schemas.reading import (
     ReadingPlanOut,
     ReadingProgressOut,
 )
+from app.schemas.registration import EventRegistrationCreate, EventRegistrationOut
 from app.services.certificates import render_certificate_pdf
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -195,3 +198,67 @@ def download_certificate(
             "Content-Disposition": f'attachment; filename="certificate-{certificate.id}.pdf"'
         },
     )
+
+
+# ---------------- Event registration ----------------
+
+@router.get("/me/event-registrations", response_model=list[EventRegistrationOut])
+def list_my_registrations(
+    member: Member = Depends(get_current_member), db: Session = Depends(get_db)
+):
+    return (
+        db.query(EventRegistration)
+        .filter(EventRegistration.member_id == member.id)
+        .order_by(EventRegistration.registered_at.desc())
+        .all()
+    )
+
+
+@router.post(
+    "/me/event-registrations", response_model=EventRegistrationOut, status_code=201
+)
+def register_for_event(
+    payload: EventRegistrationCreate,
+    member: Member = Depends(get_current_member),
+    db: Session = Depends(get_db),
+):
+    event = db.query(Event).filter(Event.id == payload.event_id).first()
+    if not event or not event.is_published:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    existing = (
+        db.query(EventRegistration)
+        .filter(
+            EventRegistration.member_id == member.id,
+            EventRegistration.event_id == event.id,
+        )
+        .first()
+    )
+    if existing:
+        return existing
+
+    registration = EventRegistration(member_id=member.id, event_id=event.id)
+    db.add(registration)
+    db.commit()
+    db.refresh(registration)
+    return registration
+
+
+@router.delete("/me/event-registrations/{event_id}", status_code=204)
+def cancel_registration(
+    event_id: int,
+    member: Member = Depends(get_current_member),
+    db: Session = Depends(get_db),
+):
+    registration = (
+        db.query(EventRegistration)
+        .filter(
+            EventRegistration.member_id == member.id,
+            EventRegistration.event_id == event_id,
+        )
+        .first()
+    )
+    if not registration:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    db.delete(registration)
+    db.commit()
