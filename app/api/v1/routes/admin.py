@@ -13,6 +13,7 @@ from app.models.reading import ReadingDay, ReadingPlan
 from app.models.registration import EventRegistration
 from app.models.member import Member
 from app.models.event import Event
+from app.models.live_session import LiveSession
 from app.models.partner import Partner
 from app.models.testimony import Testimony
 from app.models.submissions import (
@@ -27,6 +28,7 @@ from app.schemas.admin import AdminUserCreate, AdminUserOut
 from app.schemas.reading import ReadingDayCreate, ReadingDayOut, ReadingPlanCreate, ReadingPlanOut
 from app.schemas.registration import RegistrantOut
 from app.schemas.event import EventCreate, EventOut, EventUpdate
+from app.schemas.live_session import LiveSessionCreate, LiveSessionOut, LiveSessionUpdate
 from app.schemas.partner import PartnerCreate, PartnerOut, PartnerUpdate
 from app.schemas.testimony import TestimonyCreate, TestimonyOut, TestimonyUpdate
 from app.schemas.submissions import (
@@ -172,6 +174,40 @@ def update_partner(partner_id: int, payload: PartnerUpdate, db: Session = Depend
 def delete_partner(partner_id: int, db: Session = Depends(get_db)):
     partner = _get_or_404(db, Partner, partner_id)
     db.delete(partner)
+    db.commit()
+
+
+# ---------------- Live sessions (Zoom/Meet/etc links) ----------------
+
+@router.get("/live-sessions", response_model=list[LiveSessionOut])
+def list_all_live_sessions(db: Session = Depends(get_db)):
+    return db.query(LiveSession).order_by(LiveSession.created_at.desc()).all()
+
+
+@router.post("/live-sessions", response_model=LiveSessionOut, status_code=201)
+def create_live_session(payload: LiveSessionCreate, db: Session = Depends(get_db)):
+    session = LiveSession(**payload.model_dump())
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.put("/live-sessions/{session_id}", response_model=LiveSessionOut)
+def update_live_session(
+    session_id: int, payload: LiveSessionUpdate, db: Session = Depends(get_db)
+):
+    session = _get_or_404(db, LiveSession, session_id)
+    _apply_update(session, payload)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.delete("/live-sessions/{session_id}", status_code=204)
+def delete_live_session(session_id: int, db: Session = Depends(get_db)):
+    session = _get_or_404(db, LiveSession, session_id)
+    db.delete(session)
     db.commit()
 
 

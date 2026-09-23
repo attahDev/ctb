@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.limiter import limiter
 from app.db.session import get_db
 from app.models.event import Event
+from app.models.live_session import LiveSession
 from app.models.partner import Partner
 from app.models.testimony import Testimony
 from app.models.submissions import (
@@ -19,6 +20,7 @@ from app.models.submissions import (
     VolunteerApplication,
 )
 from app.schemas.event import EventOut
+from app.schemas.live_session import LiveSessionOut
 from app.schemas.partner import PartnerOut
 from app.schemas.testimony import TestimonyOut
 from app.schemas.submissions import (
@@ -80,6 +82,16 @@ def list_partners(db: Session = Depends(get_db)):
         db.query(Partner)
         .filter(Partner.is_published.is_(True))
         .order_by(asc(Partner.sort_order))
+        .all()
+    )
+
+
+@router.get("/live-sessions", response_model=list[LiveSessionOut])
+def list_live_sessions(db: Session = Depends(get_db)):
+    return (
+        db.query(LiveSession)
+        .filter(LiveSession.is_active.is_(True))
+        .order_by(asc(LiveSession.scheduled_at))
         .all()
     )
 
