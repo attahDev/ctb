@@ -29,6 +29,7 @@ class PrayerRequest(Base):
     phone: Mapped[str] = mapped_column(String(50), default="")
     request_text: Mapped[str] = mapped_column(Text)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False)
+    show_on_wall: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(20), default="new")  # new | praying | followed_up
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -85,6 +86,21 @@ class TribeJoinRequest(Base):
     tribe_preference: Mapped[str] = mapped_column(String(255), default="")
     message: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="new")  # new | matched | closed
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class CounsellingRequest(Base):
+    __tablename__ = "counselling_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255))
+    phone: Mapped[str] = mapped_column(String(50), default="")
+    preferred_format: Mapped[str] = mapped_column(String(50), default="")  # in-person | phone | video
+    message: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="new")  # new | scheduled | closed
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

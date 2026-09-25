@@ -16,6 +16,15 @@ class TestimonyCreate(TestimonyBase):
     pass
 
 
+class TestimonySubmit(BaseModel):
+    """What the public can submit — no control over is_published/is_featured,
+    those stay admin-only via the full TestimonyCreate/admin panel."""
+
+    name: str
+    role: str = ""
+    quote: str
+
+
 class TestimonyUpdate(BaseModel):
     name: str | None = None
     role: str | None = None

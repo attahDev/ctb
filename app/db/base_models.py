@@ -23,4 +23,5 @@ from app.models.submissions import (  # noqa: F401
     VolunteerApplication,
     BibleClassEnrollment,
     TribeJoinRequest,
+    CounsellingRequest,
 )

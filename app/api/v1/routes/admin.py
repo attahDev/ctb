@@ -19,6 +19,7 @@ from app.models.testimony import Testimony
 from app.models.submissions import (
     BibleClassEnrollment,
     ContactSubmission,
+    CounsellingRequest,
     NewsletterSubscriber,
     PrayerRequest,
     TribeJoinRequest,
@@ -34,6 +35,7 @@ from app.schemas.testimony import TestimonyCreate, TestimonyOut, TestimonyUpdate
 from app.schemas.submissions import (
     BibleClassOut,
     ContactOut,
+    CounsellingOut,
     NewsletterOut,
     PrayerRequestOut,
     StatusUpdate,
@@ -221,6 +223,7 @@ _SUBMISSION_MODELS = {
     "volunteer": (VolunteerApplication, VolunteerOut),
     "bible-class": (BibleClassEnrollment, BibleClassOut),
     "tribe-join": (TribeJoinRequest, TribeJoinOut),
+    "counselling": (CounsellingRequest, CounsellingOut),
 }
 
 
@@ -247,6 +250,8 @@ def update_submission_status(
         raise HTTPException(status_code=400, detail="This submission type has no status field")
     item = _get_or_404(db, model, item_id)
     item.status = payload.status
+    if payload.show_on_wall is not None and hasattr(model, "show_on_wall"):
+        item.show_on_wall = payload.show_on_wall
     db.commit()
     db.refresh(item)
     return schema.model_validate(item)

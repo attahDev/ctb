@@ -14,6 +14,7 @@ from app.models.testimony import Testimony
 from app.models.submissions import (
     BibleClassEnrollment,
     ContactSubmission,
+    CounsellingRequest,
     NewsletterSubscriber,
     PrayerRequest,
     TribeJoinRequest,
@@ -22,16 +23,19 @@ from app.models.submissions import (
 from app.schemas.event import EventOut
 from app.schemas.live_session import LiveSessionOut
 from app.schemas.partner import PartnerOut
-from app.schemas.testimony import TestimonyOut
+from app.schemas.testimony import TestimonyOut, TestimonySubmit
 from app.schemas.submissions import (
     BibleClassCreate,
     BibleClassOut,
     ContactCreate,
     ContactOut,
+    CounsellingCreate,
+    CounsellingOut,
     NewsletterCreate,
     NewsletterOut,
     PrayerRequestCreate,
     PrayerRequestOut,
+    PrayerWallEntry,
     TribeJoinCreate,
     TribeJoinOut,
     VolunteerCreate,
@@ -74,6 +78,24 @@ def list_testimonies(featured_only: bool = False, db: Session = Depends(get_db))
     if featured_only:
         query = query.filter(Testimony.is_featured.is_(True))
     return query.order_by(asc(Testimony.created_at)).all()
+
+
+@router.post("/testimonies", response_model=TestimonyOut, status_code=201)
+@limiter.limit(FORM_RATE_LIMIT)
+def submit_testimony(request: Request, payload: TestimonySubmit, db: Session = Depends(get_db)):
+    """Public submission — always lands unpublished/unfeatured pending
+    admin review via the existing Testimonies admin panel."""
+    testimony = Testimony(
+        name=payload.name,
+        role=payload.role,
+        quote=payload.quote,
+        is_published=False,
+        is_featured=False,
+    )
+    db.add(testimony)
+    db.commit()
+    db.refresh(testimony)
+    return testimony
 
 
 @router.get("/partners", response_model=list[PartnerOut])
@@ -131,6 +153,20 @@ def submit_prayer_request(request: Request, payload: PrayerRequestCreate, db: Se
     return prayer_request
 
 
+@router.get("/prayer-wall", response_model=list[PrayerWallEntry])
+def list_prayer_wall(db: Session = Depends(get_db)):
+    """Public, name-and-request-only view — never exposes email/phone, and
+    only shows entries the submitter marked non-private AND an admin has
+    explicitly approved via the Submissions panel."""
+    return (
+        db.query(PrayerRequest)
+        .filter(PrayerRequest.is_private.is_(False), PrayerRequest.show_on_wall.is_(True))
+        .order_by(PrayerRequest.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+
 @router.post("/newsletter", response_model=NewsletterOut, status_code=201)
 @limiter.limit(FORM_RATE_LIMIT)
 def subscribe_newsletter(request: Request, payload: NewsletterCreate, db: Session = Depends(get_db)):
@@ -179,3 +215,13 @@ def submit_tribe_join(request: Request, payload: TribeJoinCreate, db: Session = 
     db.commit()
     db.refresh(tribe_request)
     return tribe_request
+
+
+@router.post("/counselling", response_model=CounsellingOut, status_code=201)
+@limiter.limit(FORM_RATE_LIMIT)
+def submit_counselling_request(request: Request, payload: CounsellingCreate, db: Session = Depends(get_db)):
+    counselling_request = CounsellingRequest(**payload.model_dump())
+    db.add(counselling_request)
+    db.commit()
+    db.refresh(counselling_request)
+    return counselling_request

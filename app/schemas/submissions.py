@@ -5,6 +5,7 @@ from pydantic import BaseModel, EmailStr
 
 class StatusUpdate(BaseModel):
     status: str
+    show_on_wall: bool | None = None  # only meaningful for prayer-requests
 
 
 # --- Contact ---
@@ -26,7 +27,7 @@ class ContactOut(ContactCreate):
 # --- Prayer request ---
 class PrayerRequestCreate(BaseModel):
     name: str
-    email: EmailStr | None = None
+    email: str = ""
     phone: str = ""
     request_text: str
     is_private: bool = False
@@ -35,6 +36,17 @@ class PrayerRequestCreate(BaseModel):
 class PrayerRequestOut(PrayerRequestCreate):
     id: int
     status: str
+    show_on_wall: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PrayerWallEntry(BaseModel):
+    """Public-safe subset — never exposes email/phone."""
+
+    name: str
+    request_text: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -96,6 +108,23 @@ class TribeJoinCreate(BaseModel):
 
 
 class TribeJoinOut(TribeJoinCreate):
+    id: int
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# --- Counselling ---
+class CounsellingCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str = ""
+    preferred_format: str = ""
+    message: str = ""
+
+
+class CounsellingOut(CounsellingCreate):
     id: int
     status: str
     created_at: datetime
